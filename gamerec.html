@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Recommender</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #a3b18a;
+            --secondary-color: #588157;
+            --bg-dark: #1e2d2f;
+            --bg-light: #344e41;
+            --text-primary: #dad7cd;
+            --text-secondary: #a3b18a;
+            --border-color: rgba(163, 177, 138, 0.2);
+            --accent-color: #a3b18a;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 40px 20px;
+            background-image: 
+                radial-gradient(circle at 20% 80%, rgba(88, 129, 87, 0.1), transparent 40%),
+                radial-gradient(circle at 80% 10%, rgba(163, 177, 138, 0.1), transparent 30%),
+                url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23344e41" fill-opacity="0.1"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');
+        }
+
+        #app-container {
+            width: 100%;
+            max-width: 900px;
+            min-height: 650px;
+            height: auto;
+            background: rgba(30, 45, 47, 0.9);
+            backdrop-filter: blur(15px);
+            border-radius: 18px;
+            border: 1px solid var(--border-color);
+            padding: 40px;
+            box-shadow: 0 10px 60px rgba(0, 0, 0, 0.5);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            animation: fadeInDown 1s ease-out;
+        }
+
+        .header h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #fff;
+            text-shadow: 0 0 8px var(--accent-color);
+        }
+        
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .question-slide {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            animation: fadeIn 0.8s ease-in-out;
+            margin-bottom: auto;
+        }
+
+        .question-slide.active {
+            display: flex;
+        }
+
+        .question-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            margin-bottom: 2rem;
+            color: var(--accent-color);
+            text-align: center;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 700px;
+        }
+
+        .option-card {
+            background: var(--bg-light);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .option-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+            border-color: var(--accent-color);
+        }
+
+        .option-card.selected {
+            background: var(--secondary-color);
+            color: #fff;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 20px rgba(163, 177, 138, 0.4);
+        }
+        
+        .option-card .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+            transition: all 0.3s ease;
+        }
+        
+        .option-card.selected .icon {
+            transform: scale(1.1);
+        }
+        
+        .option-card .label {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .btn {
+            font-family: 'Orbitron', sans-serif;
+            background: transparent;
+            border: 2px solid var(--accent-color);
+            color: var(--accent-color);
+            padding: 12px 30px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: var(--accent-color);
+            color: var(--bg-dark);
+            box-shadow: 0 0 15px var(--accent-color);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: transparent;
+            color: var(--accent-color);
+            box-shadow: none;
+        }
+        
+        #results-slide {
+            display: none;
+            animation: fadeIn 1.5s ease-in-out;
+            width: 100%;
+        }
+        
+        #results-slide.active {
+            display: block;
+        }
+        
+        #results-container {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .result-card {
+            display: flex;
+            gap: 1.5rem;
+            background: var(--bg-light);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+        
+        .result-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+
+        .result-card:first-child {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 20px rgba(163, 177, 138, 0.2);
+        }
+
+        .game-art {
+            flex-shrink: 0;
+            width: 150px;
+        }
+
+        .game-art img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .game-details {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .game-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 0.5rem;
+        }
+
+        .game-description {
+            color: var(--text-primary);
+            line-height: 1.6;
+            font-size: 0.95rem;
+            margin-bottom: 1rem;
+        }
+        
+        .game-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: auto;
+        }
+
+        .tag {
+            background: var(--bg-dark);
+            color: var(--accent-color);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border: 1px solid var(--border-color);
+        }
+        
+        .platform-icons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        
+        #loading-slide {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            width: 100%;
+            min-height: 300px;
+        }
+
+        #loading-slide.active {
+            display: flex;
+        }
+
+        .loader {
+            width: 80px;
+            height: 80px;
+            border: 5px solid var(--border-color);
+            border-top-color: var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1.5rem;
+        }
+        
+        .loading-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            color: var(--text-secondary);
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 20px 10px;
+            }
+            #app-container {
+                padding: 20px;
+            }
+            .header h1 {
+                font-size: 2rem;
+            }
+            .question-title {
+                font-size: 1.5rem;
+            }
+            .options-grid {
+                grid-template-columns: 1fr;
+            }
+            .result-card {
+                flex-direction: column;
+            }
+            .game-art {
+                width: 100%;
+                max-width: 200px;
+                margin: 0 auto;
+            }
+            .navigation-buttons {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <div class="header">
+            <h1>Game Recommender</h1>
+            <p>Find your next adventure</p>
+        </div>
+
+        <div id="question-container">
+            <div id="slide-1" class="question-slide active">
+                <h2 class="question-title">What world are you looking to conquer?</h2>
+                <div class="options-grid" data-question="genre">
+                    <div class="option-card" data-value="Action"><span class="icon">⚔️</span><span class="label">Action</span></div>
+                    <div class="option-card" data-value="RPG"><span class="icon">📜</span><span class="label">RPG</span></div>
+                    <div class="option-card" data-value="Strategy"><span class="icon">🧠</span><span class="label">Strategy</span></div>
+                    <div class="option-card" data-value="Adventure"><span class="icon">🗺️</span><span class="label">Adventure</span></div>
+                    <div class="option-card" data-value="Indie"><span class="icon">💡</span><span class="label">Indie</span></div>
+                    <div class="option-card" data-value="Simulation"><span class="icon">🏡</span><span class="label">Simulation</span></div>
+                </div>
+            </div>
+
+            <div id="slide-2" class="question-slide">
+                <h2 class="question-title">What is your desired mood?</h2>
+                <div class="options-grid" data-question="mood">
+                    <div class="option-card" data-value="Intense"><span class="icon">🔥</span><span class="label">Intense & Fast-Paced</span></div>
+                    <div class="option-card" data-value="Relaxing"><span class="icon">🍃</span><span class="label">Calm & Relaxing</span></div>
+                    <div class="option-card" data-value="Story-driven"><span class="icon">📖</span><span class="label">Deep Story</span></div>
+                    <div class="option-card" data-value="Creative"><span class="icon">🎨</span><span class="label">Creative & Open</span></div>
+                </div>
+            </div>
+
+            <div id="slide-3" class="question-slide">
+                <h2 class="question-title">How much time can you invest?</h2>
+                <div class="options-grid" data-question="time">
+                    <div class="option-card" data-value="Short"><span class="icon">⏱️</span><span class="label">Short Bursts (&lt;1hr)</span></div>
+                    <div class="option-card" data-value="Medium"><span class="icon">⏳</span><span class="label">Standard Sessions (1-3hrs)</span></div>
+                    <div class="option-card" data-value="Long"><span class="icon">🌌</span><span class="label">Endless Hours</span></div>
+                </div>
+            </div>
+            
+            <div id="slide-4" class="question-slide">
+                <h2 class="question-title">Choose your weapon of choice.</h2>
+                <div class="options-grid" data-question="platform">
+                    <div class="option-card" data-value="PC"><span class="icon">💻</span><span class="label">PC</span></div>
+                    <div class="option-card" data-value="PlayStation"><span class="icon">🎮</span><span class="label">PlayStation</span></div>
+                    <div class="option-card" data-value="Xbox"><span class="icon">❎</span><span class="label">Xbox</span></div>
+                    <div class="option-card" data-value="Nintendo Switch"><span class="icon">🕹️</span><span class="label">Nintendo Switch</span></div>
+                </div>
+            </div>
+            
+             <div id="slide-5" class="question-slide">
+                <h2 class="question-title">Are you a lone wolf or a pack hunter?</h2>
+                <div class="options-grid" data-question="playerType">
+                    <div class="option-card" data-value="Solo"><span class="icon">👤</span><span class="label">Solo Adventure</span></div>
+                    <div class="option-card" data-value="Multiplayer"><span class="icon">👥</span><span class="label">With a Squad</span></div>
+                </div>
+            </div>
+
+        </div>
+        
+        <div id="loading-slide">
+            <div class="loader"></div>
+            <p class="loading-text">Finding your games...</p>
+        </div>
+
+        <div id="results-slide">
+             <h2 class="question-title">Here are your top recommendations:</h2>
+             <div id="results-container">
+                <!-- Game recommendations will be injected here -->
+             </div>
+        </div>
+
+        <div class="navigation-buttons">
+            <button id="back-btn" class="btn">Back</button>
+            <button id="next-btn" class="btn">Next</button>
+            <button id="restart-btn" class="btn" style="display: none;">Start Over</button>
+        </div>
+    </div>
+
+    <script>
+        const gameDatabase = [
+            {
+                "id": 1,
+                "title": "Cyberpunk 2077",
+                "genres": ["Action", "RPG"],
+                "moods": ["Story-driven", "Intense"],
+                "timeCommitment": ["Medium", "Long"],
+                "platforms": ["PC", "PlayStation", "Xbox"],
+                "playerFocus": ["Solo"],
+                "description": "An open-world, action-adventure story set in Night City, a megalopolis obsessed with power, glamour and body modification. You play as V, a mercenary outlaw going after a one-of-a-kind implant that is the key to immortality.",
+                "imageUrl": "https://placehold.co/600x900/7d0cff/ffffff?text=Cyberpunk+2077"
+            },
+            {
+                "id": 2,
+                "title": "The Witcher 3: Wild Hunt",
+                "genres": ["RPG", "Adventure"],
+                "moods": ["Story-driven"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PC", "PlayStation", "Xbox", "Nintendo Switch"],
+                "playerFocus": ["Solo"],
+                "description": "As Geralt of Rivia, a professional monster slayer, you are tasked with finding the child of prophecy, a living weapon that can alter the shape of the world. Explore a vast open world, rich with merchant cities, pirate islands, and forgotten caverns.",
+                "imageUrl": "https://placehold.co/600x900/c21e1e/ffffff?text=The+Witcher+3"
+            },
+            {
+                "id": 3,
+                "title": "Stardew Valley",
+                "genres": ["Simulation", "Indie", "RPG"],
+                "moods": ["Relaxing", "Creative"],
+                "timeCommitment": ["Short", "Medium", "Long"],
+                "platforms": ["PC", "PlayStation", "Xbox", "Nintendo Switch"],
+                "playerFocus": ["Solo", "Multiplayer"],
+                "description": "You've inherited your grandfather's old farm plot in Stardew Valley. Armed with hand-me-down tools and a few coins, you set out to begin your new life. Can you learn to live off the land and turn these overgrown fields into a thriving home?",
+                "imageUrl": "https://placehold.co/600x900/8bc34a/ffffff?text=Stardew+Valley"
+            },
+            {
+                "id": 4,
+                "title": "Hades",
+                "genres": ["Action", "Indie"],
+                "moods": ["Intense"],
+                "timeCommitment": ["Short"],
+                "platforms": ["PC", "PlayStation", "Xbox", "Nintendo Switch"],
+                "playerFocus": ["Solo"],
+                "description": "Defy the god of the dead as you hack and slash your way out of the Underworld of Greek myth in this rogue-like dungeon crawler. Wield the powers and mythic weapons of Olympus to break free from the clutches of Hades himself.",
+                "imageUrl": "https://placehold.co/600x900/ff6f00/ffffff?text=Hades"
+            },
+            {
+                "id": 5,
+                "title": "Red Dead Redemption 2",
+                "genres": ["Action", "Adventure"],
+                "moods": ["Story-driven"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PC", "PlayStation", "Xbox"],
+                "playerFocus": ["Solo", "Multiplayer"],
+                "description": "America, 1899. The end of the wild west era has begun. After a robbery goes badly wrong in the western town of Blackwater, Arthur Morgan and the Van der Linde gang are forced to flee. A deep, narrative-driven adventure in a stunningly realistic world.",
+                "imageUrl": "https://placehold.co/600x900/d52d2d/ffffff?text=RDR2"
+            },
+            {
+                "id": 6,
+                "title": "Civilization VI",
+                "genres": ["Strategy"],
+                "moods": ["Story-driven", "Relaxing"],
+                "timeCommitment": ["Medium", "Long"],
+                "platforms": ["PC", "Nintendo Switch"],
+                "playerFocus": ["Solo", "Multiplayer"],
+                "description": "Build an empire to stand the test of time. Civilization VI offers new ways to interact with your world, expand your empire across the map, advance your culture, and compete against history’s greatest leaders to build a civilization that will truly endure.",
+                "imageUrl": "https://placehold.co/600x900/3d5afe/ffffff?text=Civilization+VI"
+            },
+            {
+                "id": 7,
+                "title": "Animal Crossing: New Horizons",
+                "genres": ["Simulation"],
+                "moods": ["Relaxing", "Creative"],
+                "timeCommitment": ["Short", "Medium", "Long"],
+                "platforms": ["Nintendo Switch"],
+                "playerFocus": ["Solo", "Multiplayer"],
+                "description": "Escape to a deserted island and create your own paradise as you explore, create, and customize in the Animal Crossing: New Horizons game. Your island getaway has a wealth of natural resources that can be used to craft everything from tools to creature comforts.",
+                "imageUrl": "https://placehold.co/600x900/4caf50/ffffff?text=Animal+Crossing"
+            },
+            {
+                "id": 8,
+                "title": "DOOM Eternal",
+                "genres": ["Action"],
+                "moods": ["Intense"],
+                "timeCommitment": ["Medium"],
+                "platforms": ["PC", "PlayStation", "Xbox", "Nintendo Switch"],
+                "playerFocus": ["Solo"],
+                "description": "Hell’s armies have invaded Earth. Become the Slayer in an epic single-player campaign to conquer demons across dimensions and stop the final destruction of humanity. The only thing they fear... is you. Experience the ultimate combination of speed and power.",
+                "imageUrl": "https://placehold.co/600x900/880e4f/ffffff?text=DOOM+Eternal"
+            },
+            {
+                "id": 9,
+                "title": "The Legend of Zelda: Breath of the Wild",
+                "genres": ["Adventure", "RPG"],
+                "moods": ["Story-driven", "Creative"],
+                "timeCommitment": ["Long"],
+                "platforms": ["Nintendo Switch"],
+                "playerFocus": ["Solo"],
+                "description": "Forget everything you know about The Legend of Zelda games. Step into a world of discovery, exploration, and adventure. Travel across vast fields, through forests, and to mountain peaks as you discover what has become of the kingdom of Hyrule in this stunning open-air adventure.",
+                "imageUrl": "https://placehold.co/600x900/00bcd4/ffffff?text=Zelda:+BOTW"
+            },
+            {
+                "id": 10,
+                "title": "Minecraft",
+                "genres": ["Simulation", "Adventure", "Indie"],
+                "moods": ["Creative", "Relaxing"],
+                "timeCommitment": ["Short", "Medium", "Long"],
+                "platforms": ["PC", "PlayStation", "Xbox", "Nintendo Switch"],
+                "playerFocus": ["Solo", "Multiplayer"],
+                "description": "Explore your own unique world and create anything you can imagine. A game with limitless potential, whether you want to build a simple home or a grand castle. Survive the night or go on a grand adventure in a world of blocks.",
+                "imageUrl": "https://placehold.co/600x900/66bb6a/ffffff?text=Minecraft"
+            },
+            {
+                "id": 11,
+                "title": "Elden Ring",
+                "genres": ["Action", "RPG"],
+                "moods": ["Intense", "Story-driven"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PC", "PlayStation", "Xbox"],
+                "playerFocus": ["Solo", "Multiplayer"],
+                "description": "Rise, Tarnished, and be guided by grace to brandish the power of the Elden Ring and become an Elden Lord in the Lands Between. A vast world where open fields with a variety of situations and huge dungeons with complex and three-dimensional designs are seamlessly connected.",
+                "imageUrl": "https://placehold.co/600x900/fbc02d/000000?text=Elden+Ring"
+            },
+            {
+                "id": 12,
+                "title": "Hollow Knight",
+                "genres": ["Action", "Adventure", "Indie"],
+                "moods": ["Intense", "Story-driven"],
+                "timeCommitment": ["Medium", "Long"],
+                "platforms": ["PC", "PlayStation", "Xbox", "Nintendo Switch"],
+                "playerFocus": ["Solo"],
+                "description": "Explore twisting caverns, ancient cities and deadly wastes. Battle tainted creatures and befriend bizarre bugs. Uncover an ancient history and solve the mysteries buried at the kingdom's heart in this beautiful, hand-drawn 2D world.",
+                "imageUrl": "https://placehold.co/600x900/37474f/ffffff?text=Hollow+Knight"
+            },
+            {
+                "id": 13,
+                "title": "Factorio",
+                "genres": ["Strategy", "Simulation"],
+                "moods": ["Creative", "Intense"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PC"],
+                "playerFocus": ["Solo", "Multiplayer"],
+                "description": "You have crash-landed on an alien planet. You will be mining resources, researching technologies, building infrastructure, automating production, and fighting enemies. Use your imagination to design your factory, combine simple elements into ingenious structures.",
+                "imageUrl": "https://placehold.co/600x900/8d6e63/ffffff?text=Factorio"
+            },
+            {
+                "id": 14,
+                "title": "Portal 2",
+                "genres": ["Adventure", "Strategy"],
+                "moods": ["Story-driven"],
+                "timeCommitment": ["Medium"],
+                "platforms": ["PC", "Xbox"],
+                "playerFocus": ["Solo", "Multiplayer"],
+                "description": "The \"Perpetual Testing Initiative\" has been expanded to allow you to design and build puzzles for yourself and your friends! Featuring a co-op mode with its own unique story, characters, and gameplay, Portal 2 is a mind-bending adventure.",
+                "imageUrl": "https://placehold.co/600x900/03a9f4/ffffff?text=Portal+2"
+            },
+            {
+                "id": 15,
+                "title": "Overwatch 2",
+                "genres": ["Action"],
+                "moods": ["Intense"],
+                "timeCommitment": ["Short"],
+                "platforms": ["PC", "PlayStation", "Xbox", "Nintendo Switch"],
+                "playerFocus": ["Multiplayer"],
+                "description": "A team-based action game set in an optimistic future. Every match is an intense 5v5 battlefield brawl. Team up with friends and play as a time-jumping freedom fighter, a beat-dropping battlefield DJ, or one of over 30 other unique heroes.",
+                "imageUrl": "https://placehold.co/600x900/ff9800/ffffff?text=Overwatch+2"
+            },
+            {
+                "id": 16,
+                "title": "God of War (2018)",
+                "genres": ["Action", "Adventure"],
+                "moods": ["Story-driven", "Intense"],
+                "timeCommitment": ["Medium", "Long"],
+                "platforms": ["PC", "PlayStation"],
+                "playerFocus": ["Solo"],
+                "description": "His vengeance against the Gods of Olympus years behind him, Kratos now lives as a man in the realm of Norse Gods and monsters. It is in this harsh, unforgiving world that he must fight to survive… and teach his son to do the same.",
+                "imageUrl": "https://placehold.co/600x900/e53935/ffffff?text=God+of+War"
+            },
+            {
+                "id": 17,
+                "title": "Sekiro: Shadows Die Twice",
+                "genres": ["Action", "Adventure"],
+                "moods": ["Intense"],
+                "timeCommitment": ["Medium", "Long"],
+                "platforms": ["PC", "PlayStation", "Xbox"],
+                "playerFocus": ["Solo"],
+                "description": "In this award-winning title, you are the \"one-armed wolf\", a disgraced and disfigured warrior rescued from the brink of death. Carve your own clever path to vengeance in a dark and twisted world. Explore late 1500s Sengoku Japan.",
+                "imageUrl": "https://placehold.co/600x900/424242/ffffff?text=Sekiro"
+            },
+            {
+                "id": 18,
+                "title": "Final Fantasy VII Remake",
+                "genres": ["RPG", "Action"],
+                "moods": ["Story-driven", "Intense"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PC", "PlayStation"],
+                "playerFocus": ["Solo"],
+                "description": "A spectacular re-imagining of one of the most visionary games ever. The world has fallen under the control of the Shinra Electric Power Company, and Cloud Strife, a former SOLDIER, lends his aid to the resistance group Avalanche.",
+                "imageUrl": "https://placehold.co/600x900/1976d2/ffffff?text=FFVII+Remake"
+            },
+            {
+                "id": 19,
+                "title": "Persona 5 Royal",
+                "genres": ["RPG"],
+                "moods": ["Story-driven", "Relaxing"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PC", "PlayStation", "Xbox", "Nintendo Switch"],
+                "playerFocus": ["Solo"],
+                "description": "Wear the mask of Joker and join the Phantom Thieves of Hearts. Break free from the chains of modern society and stage grand heists to infiltrate the minds of the corrupt and make them change their ways!",
+                "imageUrl": "https://placehold.co/600x900/d32f2f/ffffff?text=Persona+5+Royal"
+            },
+            {
+                "id": 20,
+                "title": "Disco Elysium",
+                "genres": ["RPG", "Indie"],
+                "moods": ["Story-driven"],
+                "timeCommitment": ["Medium", "Long"],
+                "platforms": ["PC", "PlayStation", "Xbox", "Nintendo Switch"],
+                "playerFocus": ["Solo"],
+                "description": "A groundbreaking open world role playing game. You're a detective with a unique skill system at your disposal and a whole city block to carve your path across. Interrogate unforgettable characters, crack murders, or take bribes.",
+                "imageUrl": "https://placehold.co/600x900/5d4037/ffffff?text=Disco+Elysium"
+            },
+            {
+                "id": 21,
+                "title": "Mass Effect Legendary Edition",
+                "genres": ["RPG", "Action"],
+                "moods": ["Story-driven"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PC", "PlayStation", "Xbox"],
+                "playerFocus": ["Solo"],
+                "description": "Relive the legend of Commander Shepard in the highly acclaimed Mass Effect trilogy. Includes single-player base content and over 40 DLC from Mass Effect, Mass Effect 2, and Mass Effect 3 games, all remastered and optimized for 4K Ultra HD.",
+                "imageUrl": "https://placehold.co/600x900/0277bd/ffffff?text=Mass+Effect"
+            },
+            {
+                "id": 22,
+                "title": "StarCraft II",
+                "genres": ["Strategy"],
+                "moods": ["Intense"],
+                "timeCommitment": ["Short", "Medium"],
+                "platforms": ["PC"],
+                "playerFocus": ["Solo", "Multiplayer"],
+                "description": "With millions of players already in the fight, StarCraft II has made gaming history. Now it's your turn to take command and lead the Terrans, Protoss, or Zerg to victory among the stars. One of the most acclaimed RTS games of all time.",
+                "imageUrl": "https://placehold.co/600x900/2962ff/ffffff?text=StarCraft+II"
+            },
+            {
+                "id": 23,
+                "title": "XCOM 2",
+                "genres": ["Strategy"],
+                "moods": ["Intense"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PC", "PlayStation", "Xbox"],
+                "playerFocus": ["Solo"],
+                "description": "Earth has changed. Twenty years have passed since world leaders offered an unconditional surrender to alien forces. XCOM, the planet’s last line of defense, was left decimated and scattered. Now, you must rebuild XCOM and ignite a global resistance.",
+                "imageUrl": "https://placehold.co/600x900/616161/ffffff?text=XCOM+2"
+            },
+            {
+                "id": 24,
+                "title": "Uncharted 4: A Thief's End",
+                "genres": ["Adventure", "Action"],
+                "moods": ["Story-driven", "Intense"],
+                "timeCommitment": ["Medium"],
+                "platforms": ["PlayStation"],
+                "playerFocus": ["Solo"],
+                "description": "Several years after his last adventure, retired fortune hunter Nathan Drake is forced back into the world of thieves. With the stakes much more personal, Drake embarks on a globe-trotting journey in pursuit of a historical conspiracy behind a fabled pirate treasure.",
+                "imageUrl": "https://placehold.co/600x900/00695c/ffffff?text=Uncharted+4"
+            },
+            {
+                "id": 25,
+                "title": "The Last of Us Part I",
+                "genres": ["Adventure", "Action"],
+                "moods": ["Story-driven", "Intense"],
+                "timeCommitment": ["Medium"],
+                "platforms": ["PC", "PlayStation"],
+                "playerFocus": ["Solo"],
+                "description": "In a ravaged civilization, where infected and hardened survivors run rampant, Joel, a weary protagonist, is hired to smuggle 14-year-old Ellie out of a military quarantine zone. However, what starts as a small job soon transforms into a brutal cross-country journey.",
+                "imageUrl": "https://placehold.co/600x900/757575/ffffff?text=The+Last+of+Us"
+            },
+            {
+                "id": 26,
+                "title": "Celeste",
+                "genres": ["Indie", "Adventure"],
+                "moods": ["Story-driven", "Intense"],
+                "timeCommitment": ["Medium"],
+                "platforms": ["PC", "PlayStation", "Xbox", "Nintendo Switch"],
+                "playerFocus": ["Solo"],
+                "description": "Help Madeline survive her inner demons on her journey to the top of Celeste Mountain, in this super-tight, hand-crafted platformer from the creators of TowerFall. Brave hundreds of challenges, uncover devious secrets, and piece together the mystery of the mountain.",
+                "imageUrl": "https://placehold.co/600x900/6a1b9a/ffffff?text=Celeste"
+            },
+            {
+                "id": 27,
+                "title": "Dead Cells",
+                "genres": ["Indie", "Action"],
+                "moods": ["Intense"],
+                "timeCommitment": ["Short", "Medium"],
+                "platforms": ["PC", "PlayStation", "Xbox", "Nintendo Switch"],
+                "playerFocus": ["Solo"],
+                "description": "A rogue-lite, metroidvania-inspired, action-platformer. You'll explore a sprawling, ever-changing castle... assuming you’re able to fight your way past its keepers in 2D souls-lite combat. No checkpoints. Kill, die, learn, repeat.",
+                "imageUrl": "https://placehold.co/600x900/f57f17/ffffff?text=Dead+Cells"
+            },
+            {
+                "id": 28,
+                "title": "The Sims 4",
+                "genres": ["Simulation"],
+                "moods": ["Relaxing", "Creative"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PC", "PlayStation", "Xbox"],
+                "playerFocus": ["Solo"],
+                "description": "Unleash your imagination and create a unique world of Sims that’s an expression of you! Explore and customize every detail from Sims to homes, and much more. Choose how Sims look, act, and dress, then decide how they’ll live out each day.",
+                "imageUrl": "https://placehold.co/600x900/43a047/ffffff?text=The+Sims+4"
+            },
+            {
+                "id": 29,
+                "title": "Cities: Skylines",
+                "genres": ["Simulation", "Strategy"],
+                "moods": ["Relaxing", "Creative"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PC", "PlayStation", "Xbox", "Nintendo Switch"],
+                "playerFocus": ["Solo"],
+                "description": "A modern take on the classic city simulation. It introduces new game play elements to realize the thrill and hardships of creating and maintaining a real city whilst expanding on some well-established tropes of the city building experience.",
+                "imageUrl": "https://placehold.co/600x900/0288d1/ffffff?text=Cities:+Skylines"
+            },
+            {
+                "id": 30,
+                "title": "Baldur's Gate 3",
+                "genres": ["RPG"],
+                "moods": ["Story-driven", "Intense"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PC", "PlayStation"],
+                "playerFocus": ["Solo", "Multiplayer"],
+                "description": "Gather your party and return to the Forgotten Realms in a tale of fellowship and betrayal, sacrifice and survival, and the lure of absolute power. Mysterious abilities are awakening inside you, drawn from a Mind Flayer parasite planted in your brain.",
+                "imageUrl": "https://placehold.co/600x900/512da8/ffffff?text=Baldur's+Gate+3"
+            },
+            {
+                "id": 31,
+                "title": "Ghost of Tsushima",
+                "genres": ["Action", "Adventure"],
+                "moods": ["Story-driven", "Intense"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PlayStation"],
+                "playerFocus": ["Solo"],
+                "description": "In the late 13th century, the Mongol empire has laid waste to entire nations along their campaign to conquer the East. Tsushima Island is all that stands between mainland Japan and a massive Mongol invasion fleet. As samurai warrior Jin Sakai, you must do whatever it takes to protect your people.",
+                "imageUrl": "https://placehold.co/600x900/b71c1c/ffffff?text=Ghost+of+Tsushima"
+            },
+            {
+                "id": 32,
+                "title": "Control",
+                "genres": ["Action", "Adventure"],
+                "moods": ["Story-driven", "Intense"],
+                "timeCommitment": ["Medium"],
+                "platforms": ["PC", "PlayStation", "Xbox"],
+                "playerFocus": ["Solo"],
+                "description": "After a secretive agency in New York is invaded by an otherworldly threat, you become the new Director struggling to regain Control. This supernatural third-person action-adventure will challenge you to master a combination of supernatural abilities.",
+                "imageUrl": "https://placehold.co/600x900/f44336/ffffff?text=Control"
+            },
+            {
+                "id": 33,
+                "title": "Divinity: Original Sin 2",
+                "genres": ["RPG", "Strategy"],
+                "moods": ["Story-driven", "Intense"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PC", "PlayStation", "Xbox", "Nintendo Switch"],
+                "playerFocus": ["Solo", "Multiplayer"],
+                "description": "The critically acclaimed RPG that raised the bar, from the creators of Baldur's Gate 3. Master deep, tactical combat. Join up to 3 other players - but know that only one of you will have the chance to become a God.",
+                "imageUrl": "https://placehold.co/600x900/ad1457/ffffff?text=Divinity+OS2"
+            },
+            {
+                "id": 34,
+                "title": "Into the Breach",
+                "genres": ["Strategy", "Indie"],
+                "moods": ["Intense"],
+                "timeCommitment": ["Short"],
+                "platforms": ["PC", "Nintendo Switch"],
+                "playerFocus": ["Solo"],
+                "description": "Control powerful mechs from the future to defeat an alien threat. Each attempt to save the world presents a new randomly generated challenge in this turn-based strategy game from the makers of FTL.",
+                "imageUrl": "https://placehold.co/600x900/004d40/ffffff?text=Into+the+Breach"
+            },
+            {
+                "id": 35,
+                "title": "Subnautica",
+                "genres": ["Adventure", "Indie"],
+                "moods": ["Intense", "Creative"],
+                "timeCommitment": ["Medium", "Long"],
+                "platforms": ["PC", "PlayStation", "Xbox", "Nintendo Switch"],
+                "playerFocus": ["Solo"],
+                "description": "Descend into the depths of an alien underwater world filled with wonder and peril. Craft equipment, pilot submarines and out-smart wildlife to explore lush coral reefs, volcanoes, cave systems, and more - all while trying to survive.",
+                "imageUrl": "https://placehold.co/600x900/01579b/ffffff?text=Subnautica"
+            },
+            {
+                "id": 36,
+                "title": "Outer Wilds",
+                "genres": ["Adventure", "Indie"],
+                "moods": ["Story-driven", "Relaxing"],
+                "timeCommitment": ["Medium"],
+                "platforms": ["PC", "PlayStation", "Xbox"],
+                "playerFocus": ["Solo"],
+                "description": "The multi-award-winning open world mystery about a solar system trapped in an endless time loop. You are the newest recruit of Outer Wilds Ventures, a fledgling space program searching for answers in a strange, constantly evolving solar system.",
+                "imageUrl": "https://placehold.co/600x900/3e2723/ffffff?text=Outer+Wilds"
+            },
+            {
+                "id": 37,
+                "title": "Cuphead",
+                "genres": ["Indie", "Action"],
+                "moods": ["Intense"],
+                "timeCommitment": ["Medium"],
+                "platforms": ["PC", "PlayStation", "Xbox", "Nintendo Switch"],
+                "playerFocus": ["Solo", "Multiplayer"],
+                "description": "A classic run and gun action game heavily focused on boss battles. Inspired by cartoons of the 1930s, the visuals and audio are painstakingly created with the same techniques of the era: traditional hand drawn cel animation, watercolor backgrounds, and original jazz recordings.",
+                "imageUrl": "https://placehold.co/600x900/fdd835/000000?text=Cuphead"
+            },
+            {
+                "id": 38,
+                "title": "Undertale",
+                "genres": ["Indie", "RPG"],
+                "moods": ["Story-driven"],
+                "timeCommitment": ["Medium"],
+                "platforms": ["PC", "PlayStation", "Nintendo Switch"],
+                "playerFocus": ["Solo"],
+                "description": "A role-playing game where you don't have to destroy anyone. Explore a rich RPG world full of strange and delightful characters where violence is unnecessary: use your unique battle system to escape danger.",
+                "imageUrl": "https://placehold.co/600x900/000000/ffffff?text=Undertale"
+            },
+            {
+                "id": 39,
+                "title": "Planet Zoo",
+                "genres": ["Simulation", "Strategy"],
+                "moods": ["Relaxing", "Creative"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PC"],
+                "playerFocus": ["Solo"],
+                "description": "Build a world for wildlife in Planet Zoo. From the developers of Planet Coaster and Zoo Tycoon comes the ultimate zoo sim. Construct detailed habitats, manage your zoo, and meet authentic living animals who think, feel and explore the world you create around them.",
+                "imageUrl": "https://placehold.co/600x900/689f38/ffffff?text=Planet+Zoo"
+            },
+            {
+                "id": 40,
+                "title": "Microsoft Flight Simulator",
+                "genres": ["Simulation"],
+                "moods": ["Relaxing"],
+                "timeCommitment": ["Medium", "Long"],
+                "platforms": ["PC", "Xbox"],
+                "playerFocus": ["Solo", "Multiplayer"],
+                "description": "From light planes to wide-body jets, fly highly detailed and accurate aircraft in the next generation of Microsoft Flight Simulator. Test your piloting skills against the challenges of night flying, real-time atmospheric simulation and live weather in a dynamic and living world.",
+                "imageUrl": "https://placehold.co/600x900/2196f3/ffffff?text=Flight+Sim"
+            },
+            {
+                "id": 41,
+                "title": "Apex Legends",
+                "genres": ["Action"],
+                "moods": ["Intense"],
+                "timeCommitment": ["Short"],
+                "platforms": ["PC", "PlayStation", "Xbox", "Nintendo Switch"],
+                "playerFocus": ["Multiplayer"],
+                "description": "Master an ever-growing roster of legendary characters with powerful abilities and experience strategic squad play and innovative gameplay in the next evolution of Battle Royale.",
+                "imageUrl": "https://placehold.co/600x900/bf360c/ffffff?text=Apex+Legends"
+            },
+            {
+                "id": 42,
+                "title": "Valorant",
+                "genres": ["Action", "Strategy"],
+                "moods": ["Intense"],
+                "timeCommitment": ["Short"],
+                "platforms": ["PC"],
+                "playerFocus": ["Multiplayer"],
+                "description": "A 5v5 character-based tactical shooter. Blend your style and experience on a global, competitive stage. You have 13 rounds to attack and defend your side using sharp gunplay and tactical abilities.",
+                "imageUrl": "https://placehold.co/600x900/fa4454/ffffff?text=Valorant"
+            },
+            {
+                "id": 43,
+                "title": "It Takes Two",
+                "genres": ["Adventure", "Action"],
+                "moods": ["Story-driven"],
+                "timeCommitment": ["Medium"],
+                "platforms": ["PC", "PlayStation", "Xbox"],
+                "playerFocus": ["Multiplayer"],
+                "description": "Embark on the craziest journey of your life in It Takes Two, a genre-bending platform adventure created purely for co-op. Play as the clashing couple Cody and May, two humans turned into dolls by a magic spell.",
+                "imageUrl": "https://placehold.co/600x900/ff7043/ffffff?text=It+Takes+Two"
+            },
+            {
+                "id": 44,
+                "title": "Sea of Thieves",
+                "genres": ["Adventure", "Action"],
+                "moods": ["Creative", "Relaxing"],
+                "timeCommitment": ["Medium", "Long"],
+                "platforms": ["PC", "Xbox"],
+                "playerFocus": ["Multiplayer"],
+                "description": "The essential pirate experience, from sailing and fighting to exploring and looting – everything you need to live the pirate life and become a legend in your own right. With no set roles, you have complete freedom to approach the world, and other players, however you choose.",
+                "imageUrl": "https://placehold.co/600x900/00838f/ffffff?text=Sea+of+Thieves"
+            },
+            {
+                "id": 45,
+                "title": "Valheim",
+                "genres": ["Indie", "Adventure", "Simulation"],
+                "moods": ["Creative", "Intense"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PC", "Xbox"],
+                "playerFocus": ["Solo", "Multiplayer"],
+                "description": "A brutal exploration and survival game for 1-10 players, set in a procedurally-generated purgatory inspired by viking culture. Battle, build, and conquer your way to a saga worthy of Odin’s patronage!",
+                "imageUrl": "https://placehold.co/600x900/607d8b/ffffff?text=Valheim"
+            },
+            {
+                "id": 46,
+                "title": "Terraria",
+                "genres": ["Indie", "Adventure", "RPG"],
+                "moods": ["Creative", "Intense"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PC", "PlayStation", "Xbox", "Nintendo Switch"],
+                "playerFocus": ["Solo", "Multiplayer"],
+                "description": "Dig, fight, explore, build! Nothing is impossible in this action-packed adventure game. The world is your canvas and the ground itself is your paint. Grab your tools and go! Make weapons to fight off a variety of enemies in numerous biomes.",
+                "imageUrl": "https://placehold.co/600x900/8d6e63/ffffff?text=Terraria"
+            },
+            {
+                "id": 47,
+                "title": "Slay the Spire",
+                "genres": ["Strategy", "Indie", "RPG"],
+                "moods": ["Intense"],
+                "timeCommitment": ["Short", "Medium"],
+                "platforms": ["PC", "PlayStation", "Xbox", "Nintendo Switch"],
+                "playerFocus": ["Solo"],
+                "description": "We fused card games and roguelikes together to make the best single player deckbuilder we could. Craft a unique deck, encounter bizarre creatures, discover relics of immense power, and Slay the Spire!",
+                "imageUrl": "https://placehold.co/600x900/c62828/ffffff?text=Slay+the+Spire"
+            },
+            {
+                "id": 48,
+                "title": "Frostpunk",
+                "genres": ["Strategy", "Simulation"],
+                "moods": ["Story-driven", "Intense"],
+                "timeCommitment": ["Medium"],
+                "platforms": ["PC", "PlayStation", "Xbox"],
+                "playerFocus": ["Solo"],
+                "description": "The city must survive. A society survival game where heat means life and every decision comes at a price. You play as the leader of the last city on Earth, tasked with managing both its citizens and its infrastructure.",
+                "imageUrl": "https://placehold.co/600x900/607d8b/ffffff?text=Frostpunk"
+            },
+            {
+                "id": 49,
+                "title": "Nier: Automata",
+                "genres": ["Action", "RPG"],
+                "moods": ["Story-driven", "Intense"],
+                "timeCommitment": ["Medium", "Long"],
+                "platforms": ["PC", "PlayStation", "Xbox"],
+                "playerFocus": ["Solo"],
+                "description": "Invaders from another world attack without warning, unleashing machine lifeforms. Humanity is driven from the Earth and takes refuge on the Moon. As 2B, a member of the android military force YoRHa, you are plunged into a ferocious battle to take back the planet.",
+                "imageUrl": "https://placehold.co/600x900/bdbdbd/000000?text=Nier:+Automata"
+            },
+            {
+                "id": 50,
+                "title": "Monster Hunter: World",
+                "genres": ["Action", "RPG"],
+                "moods": ["Intense"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PC", "PlayStation", "Xbox"],
+                "playerFocus": ["Solo", "Multiplayer"],
+                "description": "Welcome to a new world! Take on the role of a hunter and slay ferocious monsters in a living, breathing ecosystem where you can use the landscape and its diverse inhabitants to get the upper hand. Hunt alone or in co-op with up to three other players.",
+                "imageUrl": "https://placehold.co/600x900/2e7d32/ffffff?text=MHW"
+            },
+            {
+                "id": 51,
+                "title": "Titanfall 2",
+                "genres": ["Action"],
+                "moods": ["Intense", "Story-driven"],
+                "timeCommitment": ["Medium"],
+                "platforms": ["PC", "PlayStation", "Xbox"],
+                "playerFocus": ["Solo", "Multiplayer"],
+                "description": "Call down your Titan and get ready for an exhilarating first-person shooter experience. The single player campaign explores the unique bond between man and machine. Or blast your way through an even more innovative and intense multiplayer experience.",
+                "imageUrl": "https://placehold.co/600x900/ef6c00/ffffff?text=Titanfall+2"
+            },
+            {
+                "id": 52,
+                "title": "Ori and the Blind Forest",
+                "genres": ["Indie", "Adventure"],
+                "moods": ["Story-driven", "Relaxing"],
+                "timeCommitment": ["Medium"],
+                "platforms": ["PC", "Xbox", "Nintendo Switch"],
+                "playerFocus": ["Solo"],
+                "description": "The forest of Nibel is dying. After a powerful storm sets a series of devastating events in motion, Ori must journey to find courage and confront a dark nemesis to save the forest. A visually stunning action-platformer with a deeply emotional story.",
+                "imageUrl": "https://placehold.co/600x900/8e24aa/ffffff?text=Ori"
+            },
+            {
+                "id": 53,
+                "title": "Life is Strange",
+                "genres": ["Adventure"],
+                "moods": ["Story-driven"],
+                "timeCommitment": ["Medium"],
+                "platforms": ["PC", "PlayStation", "Xbox"],
+                "playerFocus": ["Solo"],
+                "description": "Max Caulfield, a photography senior, discovers she can rewind time while saving her best friend Chloe Price. The pair soon find themselves investigating the mysterious disappearance of fellow student Rachel Amber, uncovering a dark side to life in Arcadia Bay.",
+                "imageUrl": "https://placehold.co/600x900/039be5/ffffff?text=Life+is+Strange"
+            },
+            {
+                "id": 54,
+                "title": "Detroit: Become Human",
+                "genres": ["Adventure"],
+                "moods": ["Story-driven"],
+                "timeCommitment": ["Medium"],
+                "platforms": ["PC", "PlayStation"],
+                "playerFocus": ["Solo"],
+                "description": "Detroit 2038. Technology has evolved to a point where human like androids are everywhere. They speak, move and behave like human beings, but they are only machines serving humans. Play three distinct androids and see a world at the brink of chaos through their eyes.",
+                "imageUrl": "https://placehold.co/600x900/263238/ffffff?text=Detroit"
+            },
+            {
+                "id": 55,
+                "title": "Among Us",
+                "genres": ["Indie"],
+                "moods": ["Intense"],
+                "timeCommitment": ["Short"],
+                "platforms": ["PC", "PlayStation", "Xbox", "Nintendo Switch"],
+                "playerFocus": ["Multiplayer"],
+                "description": "An online and local party game of teamwork and betrayal for 4-15 players. Play as a crewmate and complete tasks, but beware: one or more random players among the Crew are Impostors bent on killing everyone!",
+                "imageUrl": "https://placehold.co/600x900/c51162/ffffff?text=Among+Us"
+            },
+            {
+                "id": 56,
+                "title": "Fallout: New Vegas",
+                "genres": ["RPG", "Action"],
+                "moods": ["Story-driven"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PC", "Xbox"],
+                "playerFocus": ["Solo"],
+                "description": "Welcome to Vegas. New Vegas. It’s the kind of town where you dig your own grave prior to being shot in the head. A town of dreamers and desperados being torn apart by warring factions vying for complete control of this desert oasis.",
+                "imageUrl": "https://placehold.co/600x900/bf360c/ffffff?text=Fallout:+NV"
+            },
+            {
+                "id": 57,
+                "title": "The Elder Scrolls V: Skyrim",
+                "genres": ["RPG", "Adventure"],
+                "moods": ["Story-driven", "Creative"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PC", "PlayStation", "Xbox", "Nintendo Switch"],
+                "playerFocus": ["Solo"],
+                "description": "The next chapter in the highly anticipated Elder Scrolls saga arrives. Skyrim reimagines and revolutionizes the open-world fantasy epic, bringing to life a complete virtual world open for you to explore any way you choose.",
+                "imageUrl": "https://placehold.co/600x900/9e9e9e/000000?text=Skyrim"
+            },
+            {
+                "id": 58,
+                "title": "Crusader Kings III",
+                "genres": ["Strategy", "RPG"],
+                "moods": ["Story-driven"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PC", "PlayStation", "Xbox"],
+                "playerFocus": ["Solo", "Multiplayer"],
+                "description": "Your legacy awaits. Choose your noble house and lead your dynasty to greatness in a Middle Ages epic that spans generations. War is but one of many tools to establish your dominion, as key to strategy is skilled diplomacy and cunning.",
+                "imageUrl": "https://placehold.co/600x900/bcaaa4/000000?text=CK3"
+            },
+            {
+                "id": 59,
+                "title": "Age of Empires IV",
+                "genres": ["Strategy"],
+                "moods": ["Intense", "Relaxing"],
+                "timeCommitment": ["Medium", "Long"],
+                "platforms": ["PC", "Xbox"],
+                "playerFocus": ["Solo", "Multiplayer"],
+                "description": "One of the most beloved real-time strategy games returns to glory, putting you at the center of epic historical battles that shaped the world. Featuring both familiar and innovative new ways to expand your empire in vast landscapes.",
+                "imageUrl": "https://placehold.co/600x900/f9a825/000000?text=AoE+IV"
+            },
+            {
+                "id": 60,
+                "title": "Fire Emblem: Three Houses",
+                "genres": ["Strategy", "RPG"],
+                "moods": ["Story-driven"],
+                "timeCommitment": ["Long"],
+                "platforms": ["Nintendo Switch"],
+                "playerFocus": ["Solo"],
+                "description": "War is coming to the continent of Fódlan. Here, order is maintained by the Church of Seiros, which hosts the prestigious Officer’s Academy within its headquarters. You are invited to teach one of its three mighty houses: The Black Eagles, The Blue Lions, and The Golden Deer.",
+                "imageUrl": "https://placehold.co/600x900/d84315/ffffff?text=Fire+Emblem"
+            },
+            {
+                "id": 61,
+                "title": "Deep Rock Galactic",
+                "genres": ["Action", "Indie"],
+                "moods": ["Intense"],
+                "timeCommitment": ["Short", "Medium"],
+                "platforms": ["PC", "PlayStation", "Xbox"],
+                "playerFocus": ["Multiplayer"],
+                "description": "A 1-4 player co-op FPS featuring badass space Dwarves, 100% destructible environments, procedurally-generated caves, and endless hordes of alien monsters. Work together as a team to dig, explore, and fight your way through a massive cave system.",
+                "imageUrl": "https://placehold.co/600x900/fbc02d/000000?text=Deep+Rock"
+            },
+            {
+                "id": 62,
+                "title": "Returnal",
+                "genres": ["Action"],
+                "moods": ["Intense", "Story-driven"],
+                "timeCommitment": ["Medium"],
+                "platforms": ["PC", "PlayStation"],
+                "playerFocus": ["Solo"],
+                "description": "Break the cycle of chaos on an alien planet that's always changing. After crash-landing on this shape-shifting world, Selene must search through the barren landscape of an ancient civilization for her escape. A third-person roguelike shooter.",
+                "imageUrl": "https://placehold.co/600x900/b0bec5/000000?text=Returnal"
+            },
+            {
+                "id": 63,
+                "title": "Genshin Impact",
+                "genres": ["RPG", "Action"],
+                "moods": ["Story-driven", "Relaxing"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PC", "PlayStation"],
+                "playerFocus": ["Solo", "Multiplayer"],
+                "description": "Step into Teyvat, a vast world teeming with life and flowing with elemental energy. You and your sibling arrived here from another world. Separated by an unknown god, stripped of your powers, and cast into a deep slumber, you now awake to a world very different from when you first arrived.",
+                "imageUrl": "https://placehold.co/600x900/4fc3f7/ffffff?text=Genshin+Impact"
+            },
+            {
+                "id": 64,
+                "title": "Phasmophobia",
+                "genres": ["Indie"],
+                "moods": ["Intense"],
+                "timeCommitment": ["Short"],
+                "platforms": ["PC"],
+                "playerFocus": ["Multiplayer"],
+                "description": "A 4 player online co-op psychological horror where you and your team members of paranormal investigators will enter haunted locations filled with paranormal activity and gather as much evidence of the paranormal as you can.",
+                "imageUrl": "https://placehold.co/600x900/212121/ffffff?text=Phasmophobia"
+            },
+            {
+                "id": 65,
+                "title": "Death Stranding",
+                "genres": ["Adventure"],
+                "moods": ["Story-driven", "Relaxing"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PC", "PlayStation"],
+                "playerFocus": ["Solo"],
+                "description": "From legendary game creator Hideo Kojima comes a genre-defying experience. Sam Bridges must brave a world utterly transformed by the Death Stranding. Carrying the disconnected remnants of our future in his hands, he embarks on a journey to reconnect the shattered world one step at a time.",
+                "imageUrl": "https://placehold.co/600x900/1a237e/ffffff?text=Death+Stranding"
+            },
+            {
+                "id": 66,
+                "title": "RimWorld",
+                "genres": ["Simulation", "Strategy", "Indie"],
+                "moods": ["Story-driven", "Creative", "Intense"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PC"],
+                "playerFocus": ["Solo"],
+                "description": "A sci-fi colony sim driven by an intelligent AI storyteller. Generates stories by simulating psychology, ecology, gunplay, melee combat, climate, biomes, diplomacy, interpersonal relationships, art, medicine, trade, and more.",
+                "imageUrl": "https://placehold.co/600x900/795548/ffffff?text=RimWorld"
+            },
+            {
+                "id": 67,
+                "title": "No Man's Sky",
+                "genres": ["Adventure", "Simulation"],
+                "moods": ["Creative", "Relaxing"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PC", "PlayStation", "Xbox", "Nintendo Switch"],
+                "playerFocus": ["Solo", "Multiplayer"],
+                "description": "Inspired by the adventure and imagination that we love from classic science-fiction, No Man's Sky presents you with a galaxy to explore, filled with unique planets and lifeforms, and constant danger and action.",
+                "imageUrl": "https://placehold.co/600x900/ff5722/ffffff?text=No+Man's+Sky"
+            },
+            {
+                "id": 68,
+                "title": "Euro Truck Simulator 2",
+                "genres": ["Simulation"],
+                "moods": ["Relaxing"],
+                "timeCommitment": ["Medium", "Long"],
+                "platforms": ["PC"],
+                "playerFocus": ["Solo"],
+                "description": "Travel across Europe as king of the road, a trucker who delivers important cargo across impressive distances! With dozens of cities to explore from the UK, Belgium, Germany, Italy, the Netherlands, Poland, and many more, your endurance, skill and speed will all be pushed to their limits.",
+                "imageUrl": "https://placehold.co/600x900/3f51b5/ffffff?text=ETS2"
+            },
+            {
+                "id": 69,
+                "title": "Path of Exile",
+                "genres": ["Action", "RPG"],
+                "moods": ["Intense"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PC", "PlayStation", "Xbox"],
+                "playerFocus": ["Solo", "Multiplayer"],
+                "description": "You are an Exile, struggling to survive on the dark continent of Wraeclast, as you fight to earn power that will allow you to exact your revenge against those who wronged you. Created by hardcore gamers, Path of Exile is an online Action RPG set in a dark fantasy world.",
+                "imageUrl": "https://placehold.co/600x900/b71c1c/ffffff?text=Path+of+Exile"
+            },
+            {
+                "id": 70,
+                "title": "Warframe",
+                "genres": ["Action", "RPG"],
+                "moods": ["Intense"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PC", "PlayStation", "Xbox", "Nintendo Switch"],
+                "playerFocus": ["Solo", "Multiplayer"],
+                "description": "Confront warring factions throughout a sprawling interplanetary system as you follow the guidance of the mysterious Lotus and level up your Warframe, build an Arsenal of destructive firepower, and realize your true potential across massive open worlds in this thrilling, genre-defining third-person combat experience.",
+                "imageUrl": "https://placehold.co/600x900/455a64/ffffff?text=Warframe"
+            },
+            {
+                "id": 71,
+                "title": "Left 4 Dead 2",
+                "genres": ["Action"],
+                "moods": ["Intense"],
+                "timeCommitment": ["Short", "Medium"],
+                "platforms": ["PC", "Xbox"],
+                "playerFocus": ["Multiplayer"],
+                "description": "Set in the zombie apocalypse, Left 4 Dead 2 (L4D2) is the highly anticipated sequel to the award-winning Left 4 Dead, the #1 co-op game of 2008. This co-operative action horror FPS takes you and your friends through the cities, swamps and cemeteries of the Deep South.",
+                "imageUrl": "https://placehold.co/600x900/388e3c/ffffff?text=L4D2"
+            },
+            {
+                "id": 72,
+                "title": "Team Fortress 2",
+                "genres": ["Action"],
+                "moods": ["Intense"],
+                "timeCommitment": ["Short"],
+                "platforms": ["PC"],
+                "playerFocus": ["Multiplayer"],
+                "description": "One of the most popular online action games of all time, Team Fortress 2 delivers constant free updates—new game modes, maps, equipment and, most importantly, hats. Nine distinct classes provide a broad range of tactical abilities and personalities.",
+                "imageUrl": "https://placehold.co/600x900/e65100/ffffff?text=TF2"
+            },
+            {
+                "id": 73,
+                "title": "Garry's Mod",
+                "genres": ["Simulation", "Indie"],
+                "moods": ["Creative"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PC"],
+                "playerFocus": ["Solo", "Multiplayer"],
+                "description": "Garry's Mod is a physics sandbox. There aren't any predefined aims or goals. We give you the tools and leave you to play. You spawn objects and weld them together to create your own contraptions - whether that's a car, a rocket, a catapult or something that doesn't have a name yet.",
+                "imageUrl": "https://placehold.co/600x900/0d47a1/ffffff?text=Garry's+Mod"
+            },
+            {
+                "id": 74,
+                "title": "Rust",
+                "genres": ["Action", "Adventure", "Simulation"],
+                "moods": ["Intense"],
+                "timeCommitment": ["Long"],
+                "platforms": ["PC", "PlayStation", "Xbox"],
+                "playerFocus": ["Multiplayer"],
+                "description": "The only aim in Rust is to survive. Everything wants you to die - the island’s wildlife and other inhabitants, the environment, other survivors. Do whatever it takes to last another night.",
+                "imageUrl": "https://placehold.co/600x900/afb42b/000000?text=Rust"
+            },
+            {
+                "id": 75,
+                "title": "Dota 2",
+                "genres": ["Strategy", "Action"],
+                "moods": ["Intense"],
+                "timeCommitment": ["Short"],
+                "platforms": ["PC"],
+                "playerFocus": ["Multiplayer"],
+                "description": "Every day, millions of players worldwide enter battle as one of over a hundred Dota Heroes. And no matter if it's their 10th hour of play or 1,000th, there's always something new to discover. With regular updates that ensure a constant evolution of gameplay, features, and heroes, Dota 2 has taken on a life of its own.",
+                "imageUrl": "https://placehold.co/600x900/d50000/ffffff?text=Dota+2"
+            }
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const slides = document.querySelectorAll('.question-slide');
+            const nextBtn = document.getElementById('next-btn');
+            const backBtn = document.getElementById('back-btn');
+            const restartBtn = document.getElementById('restart-btn');
+            const questionContainer = document.getElementById('question-container');
+            const loadingSlide = document.getElementById('loading-slide');
+            const resultsSlide = document.getElementById('results-slide');
+            
+            let currentSlide = 0;
+            const totalSlides = slides.length;
+            const userAnswers = {};
+
+            function updateNavButtons() {
+                backBtn.disabled = currentSlide === 0;
+                
+                const currentOptions = slides[currentSlide].querySelector('.options-grid');
+                const questionKey = currentOptions.dataset.question;
+                
+                if (currentSlide === totalSlides - 1) {
+                    nextBtn.style.display = 'none';
+                } else {
+                    nextBtn.style.display = 'inline-block';
+                    nextBtn.disabled = !userAnswers[questionKey];
+                }
+            }
+
+            function showSlide(index) {
+                slides.forEach((slide, i) => {
+                    slide.classList.toggle('active', i === index);
+                });
+                currentSlide = index;
+                updateNavButtons();
+            }
+            
+            function triggerRecommendation() {
+                questionContainer.style.display = 'none';
+                document.querySelector('.navigation-buttons').style.display = 'none';
+                loadingSlide.classList.add('active');
+                
+                setTimeout(() => {
+                    const recommendations = getRecommendations();
+                    displayResults(recommendations);
+                    loadingSlide.classList.remove('active');
+                    resultsSlide.classList.add('active');
+                    
+                    const navButtons = document.querySelector('.navigation-buttons');
+                    navButtons.style.display = 'flex';
+                    navButtons.style.justifyContent = 'center';
+                    backBtn.style.display = 'none';
+                    nextBtn.style.display = 'none';
+                    restartBtn.style.display = 'inline-block';
+                }, 2500);
+            }
+
+            document.querySelectorAll('.option-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const parentGrid = card.parentElement;
+                    const questionKey = parentGrid.dataset.question;
+                    const value = card.dataset.value;
+                    
+                    userAnswers[questionKey] = value;
+                    
+                    parentGrid.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+                    card.classList.add('selected');
+
+                    updateNavButtons();
+                    
+                    if (currentSlide === totalSlides - 1) {
+                        setTimeout(() => {
+                           triggerRecommendation();
+                        }, 300);
+                    } else {
+                        setTimeout(() => {
+                           showSlide(currentSlide + 1);
+                        }, 300);
+                    }
+                });
+            });
+
+            nextBtn.addEventListener('click', () => {
+                if (currentSlide < totalSlides - 1) {
+                    showSlide(currentSlide + 1);
+                }
+            });
+
+            backBtn.addEventListener('click', () => {
+                if (currentSlide > 0) {
+                    showSlide(currentSlide - 1);
+                }
+            });
+            
+            restartBtn.addEventListener('click', () => {
+                location.reload();
+            });
+
+            function getRecommendations() {
+                const filteredByPlatform = gameDatabase.filter(game => game.platforms.includes(userAnswers.platform));
+
+                const scoredGames = filteredByPlatform.map(game => {
+                    let score = 0;
+                    if (game.genres.includes(userAnswers.genre)) score += 4;
+                    if (game.moods.includes(userAnswers.mood)) score += 3;
+                    if (game.playerFocus.includes(userAnswers.playerType)) score += 2;
+                    if (game.timeCommitment.includes(userAnswers.time)) score += 1;
+                    return { ...game, score };
+                });
+                
+                scoredGames.sort((a, b) => b.score - a.score);
+
+                const topGames = scoredGames.slice(0, 5);
+
+                if (topGames.length > 0 && topGames[0].score > 0) {
+                    return topGames;
+                }
+                
+                // Fallback if no games match criteria well
+                const fallbackGames = [...filteredByPlatform].sort(() => 0.5 - Math.random());
+                if(fallbackGames.length >= 5) return fallbackGames.slice(0,5);
+
+                const generalFallback = [...gameDatabase].sort(() => 0.5 - Math.random());
+                return generalFallback.slice(0, 5);
+            }
+            
+            function displayResults(games) {
+                const resultsContainer = document.getElementById('results-container');
+                resultsContainer.innerHTML = ''; // Clear previous results
+
+                games.forEach(game => {
+                    const gameCard = document.createElement('div');
+                    gameCard.className = 'result-card';
+
+                    const platformsHTML = game.platforms.map(p => `<span>${p}</span>`).join(', ');
+
+                    gameCard.innerHTML = `
+                        <div class="game-art">
+                            <img src="${game.imageUrl}" alt="${game.title}" onerror="this.src='https://placehold.co/300x450/1e2d2f/dad7cd?text=Image+Not+Found'">
+                        </div>
+                        <div class="game-details">
+                            <h3 class="game-title">${game.title}</h3>
+                            <p class="game-description">${game.description}</p>
+                            <div class="game-tags">
+                                <span class="tag">${game.genres.join(', ')}</span>
+                                <span class="tag">${game.moods.join(', ')}</span>
+                                <span class="tag">${game.playerFocus.join(' / ')}</span>
+                            </div>
+                            <div class="platform-icons">
+                                <strong>Available On:</strong> &nbsp; ${platformsHTML}
+                            </div>
+                        </div>
+                    `;
+                    resultsContainer.appendChild(gameCard);
+                });
+            }
+
+            showSlide(0);
+        });
+    </script>
+</body>
+</html>
